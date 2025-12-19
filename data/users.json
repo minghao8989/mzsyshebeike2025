@@ -1,0 +1,5 @@
+{
+    "admin": {"password": "123", "role": "admin", "name": "设备科科长"},
+    "mzsdsrmyy": {"password": "123", "role": "staff", "name": "张工"},
+    "staff02": {"password": "123", "role": "staff", "name": "李工"}
+}
