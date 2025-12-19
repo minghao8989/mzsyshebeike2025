@@ -3,44 +3,36 @@ import os
 
 def show_library():
     st.header("📚 医疗装备科工作文件库")
-    st.info("您可以在此处查看并下载最新的办公文件、政策规范及表格模板。")
+    
+    # 1. 渲染公共文件区 (所有人可见)
+    st.subheader("🔓 公共办公文件")
+    display_files("work_files/public")
 
-    # 定义存放文件的文件夹路径
-    file_path = "work_files"
+    st.markdown("---")
 
-    # 如果文件夹不存在，先创建一个（防止报错）
-    if not os.path.exists(file_path):
-        os.makedirs(file_path)
-
-    # 获取文件夹内所有文件列表
-    files = os.listdir(file_path)
-
-    if not files:
-        st.warning("目前文件库中暂无文件，请管理员上传至 work_files 文件夹。")
+    # 2. 渲染核心文件区 (仅登录后的员工或管理员可见)
+    st.subheader("🔐 核心管理文件")
+    if st.session_state.get('logged_in'):
+        st.success(f"已授权：{st.session_state.user_name} ({'管理员' if st.session_state.user_role == 'admin' else '员工'})")
+        display_files("work_files/core")
     else:
-        # 按照后缀分类显示（可选）
+        st.warning("⚠️ 此区域包含核心机密文件，请在左侧『用户登录』后查看。")
+
+def display_files(folder_path):
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path, exist_ok=True)
+        st.write("文件夹为空")
+        return
+
+    files = os.listdir(folder_path)
+    if not files:
+        st.write("暂无文件")
+    else:
         for file_name in files:
             file_ext = os.path.splitext(file_name)[1].lower()
+            icon = "📕" if file_ext == ".pdf" else "📗" if "xls" in file_ext else "📘"
             
-            # 根据文件后缀设置图标
-            icon = "📄"
-            if file_ext == ".pdf": icon = "📕"
-            elif file_ext in [".doc", ".docx"]: icon = "📘"
-            elif file_ext in [".xls", ".xlsx"]: icon = "📗"
-            elif file_ext in [".ppt", ".pptx"]: icon = "📙"
-
-            # 创建一行，左侧显示文件名，右侧显示下载按钮
             col1, col2 = st.columns([4, 1])
-            with col1:
-                st.write(f"{icon} {file_name}")
-            
-            with col2:
-                # 读取文件并提供下载
-                with open(os.path.join(file_path, file_name), "rb") as f:
-                    st.download_button(
-                        label="下载",
-                        data=f,
-                        file_name=file_name,
-                        key=file_name # 每个按钮需要唯一的key
-                    )
-            st.divider() # 画一条分割线
+            col1.write(f"{icon} {file_name}")
+            with open(os.path.join(folder_path, file_name), "rb") as f:
+                col2.download_button("下载", f, file_name=file_name, key=f"{folder_path}_{file_name}")
