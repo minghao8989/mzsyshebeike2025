@@ -1,96 +1,90 @@
 import streamlit as st
-import pandas as pd
+import json
 import os
+from modules.asset_page import show_asset
+from modules.repair_page import show_repair
 
-# --- 1. 初始化配置与文件检查 ---
-DATA_DIR = "data"
-ASSET_FILE = os.path.join(DATA_DIR, "equipment.csv")
-# 模拟 GB/T 14885-2022 基础分类字典 (建议后续您可以扩充这个列表)
-GBT_DICT = {
-    "关键词": ["呼吸机", "监护仪", "除颤仪", "显微镜", "超声", "CT", "磁共振", "心电图"],
-    "分类代码": ["060101", "060205", "060102", "050102", "050201", "050103", "050104", "050301"],
-    "分类名称": ["治疗急救设备", "监护设备", "手术室设备", "显微镜设备", "超声诊断设备", "X射线影像设备", "磁共振影像设备", "心电诊断设备"]
-}
+# --- 1. 配置文件读取函数 ---
+CONFIG_FILE = "data/config.json"
 
-def init_system():
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR)
-    if not os.path.exists(ASSET_FILE):
-        # 初始化表头 (参考主任提供的图2)
-        df = pd.DataFrame(columns=['资产名称', '规格型号', '分类代码', '所属科室', '状态', '登记日期'])
-        df.to_csv(ASSET_FILE, index=False, encoding='utf-8-sig')
+def load_config():
+    if not os.path.exists(CONFIG_FILE):
+        return {"sidebar_tag": "三甲医院信息化工具", "admin_user": "admin", "admin_password": "123"}
+    with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
-init_system()
+def save_config(config_data):
+    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+        json.dump(config_data, f, ensure_ascii=False, indent=4)
 
-# --- 2. 核心逻辑函数 ---
-def get_auto_code(name):
-    """根据输入的名称自动识别代码"""
-    for i, keyword in enumerate(GBT_DICT["关键词"]):
-        if keyword in name:
-            return GBT_DICT["分类代码"][i], GBT_DICT["分类名称"][i]
-    return "000000", "其他未分类"
+# --- 2. 界面初始化 ---
+st.set_page_config(page_title="医疗装备部综合管理系统", layout="wide")
+config = load_config()
 
-def load_data():
-    return pd.read_csv(ASSET_FILE)
+# 初始化登录状态
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
 
-# --- 3. 界面布局 ---
-st.set_page_config(page_title="梅州三院医疗装备管理", layout="wide")
+# --- 3. 侧边栏设计 ---
+st.sidebar.title("🏥 医疗装备部 v2025")
 
-# 侧边栏
-st.sidebar.title("🏥 装备部管理系统")
-menu = ["资产登记", "资产台账查询", "分类代码字典"]
-choice = st.sidebar.selectbox("功能切换", menu)
+# 这里就是您要求的：后台可以随意编辑的文字内容
+st.sidebar.button(config['sidebar_tag'], disabled=True)
 
-if choice == "资产登记":
-    st.header("📝 新增资产登记")
-    st.info("系统已接入 GB/T 14885-2022 分类代码自动识别引擎")
-    
-    with st.form("add_asset_form", clear_on_submit=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            asset_name = st.text_input("资产名称 (输入关键词自动识别代码)")
-            spec = st.text_input("规格型号")
-        with col2:
-            dept = st.selectbox("使用科室", ["ICU", "手术室", "急诊科", "放射科", "内科", "外科"])
-            status = st.selectbox("设备状态", ["在用", "备用", "维修中", "待报废"])
+# 导航菜单
+if st.session_state.logged_in:
+    menu = ["系统首页", "资产档案", "维修管理", "后台管理", "注销登录"]
+else:
+    menu = ["系统首页", "资产档案", "维修管理", "管理员登录"]
 
-        # 实时识别显示
-        code, cat_name = get_auto_code(asset_name) if asset_name else ("", "")
-        st.write(f"🏷️ **自动匹配结果**：分类代码 `{code}` | 类别 `{cat_name}`")
-        
-        submit = st.form_submit_button("确认登记")
-        if submit:
-            if not asset_name:
-                st.error("请输入资产名称！")
+choice = st.sidebar.radio("请选择功能模块", menu)
+
+# --- 4. 路由逻辑 ---
+
+if choice == "系统首页":
+    st.title("欢迎使用医疗装备管理系统")
+    st.markdown(f"当前单位状态：**{config['sidebar_tag']}**")
+    st.info("请通过左侧菜单访问各个功能模块。")
+
+elif choice == "资产档案":
+    show_asset()
+
+elif choice == "维修管理":
+    show_repair()
+
+elif choice == "管理员登录":
+    st.subheader("🔑 管理员身份验证")
+    with st.form("login_form"):
+        user = st.text_input("账号")
+        pw = st.text_input("密码", type="password")
+        if st.form_submit_button("登录"):
+            if user == config['admin_user'] and pw == config['admin_password']:
+                st.session_state.logged_in = True
+                st.success("登录成功！已开启管理权限。")
+                st.rerun()
             else:
-                new_data = {
-                    '资产名称': asset_name,
-                    '规格型号': spec,
-                    '分类代码': code,
-                    '所属科室': dept,
-                    '状态': status,
-                    '登记日期': pd.Timestamp.now().strftime('%Y-%m-%d')
-                }
-                df = load_data()
-                df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
-                df.to_csv(ASSET_FILE, index=False, encoding='utf-8-sig')
-                st.success(f"✅ {asset_name} 登记成功！代码已存入数据库。")
+                st.error("账号或密码错误")
 
-elif choice == "资产台账查询":
-    st.header("📊 全院资产台账")
-    df = load_data()
-    
-    # 简单的搜索功能
-    search = st.text_input("🔍 搜索设备或科室")
-    if search:
-        df = df[df.apply(lambda row: search in str(row.values), axis=1)]
-    
-    st.dataframe(df, use_container_width=True)
-    
-    # 导出功能
-    csv = df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
-    st.download_button("📥 下载当前台账(CSV)", data=csv, file_name="asset_export.csv", mime="text/csv")
+elif choice == "后台管理":
+    if not st.session_state.logged_in:
+        st.warning("请先登录管理员账号")
+    else:
+        st.header("⚙️ 系统后台管理")
+        st.subheader("1. 边栏文字设置")
+        new_tag = st.text_input("编辑左侧蓝色按钮文字", config['sidebar_tag'])
+        
+        st.subheader("2. 账号密码设置")
+        new_user = st.text_input("修改管理员账号", config['admin_user'])
+        new_pw = st.text_input("修改管理员密码", config['admin_password'], type="password")
+        
+        if st.button("保存所有设置"):
+            config['sidebar_tag'] = new_tag
+            config['admin_user'] = new_user
+            config['admin_password'] = new_pw
+            save_config(config)
+            st.success("设置已保存！系统将自动更新。")
+            st.rerun()
 
-elif choice == "分类代码字典":
-    st.header("📖 GB/T 14885-2022 基础分类参考")
-    st.table(pd.DataFrame(GBT_DICT))
+elif choice == "注销登录":
+    st.session_state.logged_in = False
+    st.rerun()
