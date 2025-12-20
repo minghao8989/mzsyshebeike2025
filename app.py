@@ -30,36 +30,100 @@ def save_json_data(path, data):
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-# --- 2. 响应式科技感 CSS ---
-def apply_style():
+# --- 2. 旗舰版自适应响应式 CSS ---
+def apply_premium_style():
     st.markdown("""
         <style>
-        .stApp { background-color: #050a14; color: #f8fafc; }
+        /* 全局深色底色 */
+        .stApp {
+            background-color: #050a14;
+            color: #f8fafc;
+        }
+        
+        /* 旗舰版 Hero Section - HID 科技感 */
         .hero-banner {
             background: linear-gradient(rgba(5, 10, 20, 0.75), rgba(5, 10, 20, 0.95)), 
                         url('https://images.unsplash.com/photo-1516549655169-df83a0774514?q=80&w=2070');
-            background-size: cover; background-position: center;
-            border-radius: 20px; border: 1px solid rgba(59, 130, 246, 0.2);
-            padding: 40px clamp(15px, 4vw, 50px); margin-bottom: 2rem;
+            background-size: cover;
+            background-position: center;
+            border-radius: 20px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            padding: 5% 4%; 
+            margin-bottom: 2rem;
+            width: 100%;
+            overflow: hidden;
         }
+        
+        /* 强制单行且自适应字号的流光标题 */
         .premium-title {
-            font-weight: 850; background: linear-gradient(90deg, #3b82f6, #60a5fa, #ffffff);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            white-space: nowrap; font-size: clamp(1.5rem, 4vw, 3.5rem); 
-            letter-spacing: -1.5px; line-height: 1.2;
+            font-weight: 850;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa, #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            white-space: nowrap; 
+            font-size: clamp(1.5rem, 4vw, 3.5rem); 
+            letter-spacing: -1.5px;
+            line-height: 1.2;
+            margin-bottom: 0.8rem;
+            display: block;
         }
-        [data-testid="stSidebar"] { background-color: #0a0f1d !important; min-width: 260px !important; }
-        .stTabs [data-baseweb="tab-list"] { gap: 24px; }
-        .stTabs [aria-selected="true"] { color: #3b82f6 !important; border-bottom-color: #3b82f6 !important; }
-        #MainMenu, footer, header { visibility: hidden; }
+
+        .premium-subtitle {
+            color: #94a3b8;
+            font-weight: 300;
+            line-height: 1.4;
+            font-size: clamp(0.9rem, 1.3vw, 1.2rem);
+            max-width: 85%;
+        }
+
+        /* 功能说明卡片 */
+        .info-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+        .info-card:hover { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
+
+        /* --- 侧边栏深度精修：解决看不清的问题 --- */
+        [data-testid="stSidebar"] {
+            background-color: #0a0f1d !important;
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        /* 侧边栏所有文字强制为白色/高对比度 */
+        [data-testid="stSidebar"] .stMarkdown p, 
+        [data-testid="stSidebar"] .stCaption,
+        [data-testid="stSidebar"] label {
+            color: #FFFFFF !important;
+            font-weight: 500 !important;
+            text-shadow: 0px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* 菜单单选框样式：未选中为白，选中为蓝 */
+        [data-testid="stSidebar"] .st-emotion-cache-6qob1r {
+            color: #FFFFFF !important;
+        }
+        [data-testid="stSidebar"] [aria-selected="true"] {
+            color: #3b82f6 !important;
+            font-weight: 700 !important;
+        }
+
+        /* 隐藏Streamlit默认标记 */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {background: rgba(0,0,0,0) !important;}
         </style>
     """, unsafe_allow_html=True)
 
 # --- 3. 系统初始化 ---
 st.set_page_config(page_title="智慧医疗装备管理平台", layout="wide")
-apply_style()
+apply_premium_style()
 
-# 默认权限全集
 ALL_PERMS = ["资产档案", "维修管理", "工作文库", "核心文件", "后台管理"]
 
 config = load_json_data(CONFIG_PATH, {
@@ -78,14 +142,13 @@ if 'logged_in' not in st.session_state:
 
 # --- 4. 侧边栏动态导航 ---
 with st.sidebar:
-    st.markdown(f"<h2 style='color:#3b82f6; font-size:1.6rem;'>🏥 {config['sidebar_title']}</h2>", unsafe_allow_html=True)
-    st.caption(f"{config['sidebar_tag']}")
+    st.markdown(f"<h2 style='color:#3b82f6; font-size:1.7rem; margin-bottom:0;'>🏥 {config['sidebar_title']}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color:#60a5fa; font-size:0.85rem; margin-top:0;'>{config['sidebar_tag']}</p>", unsafe_allow_html=True)
     st.markdown("---")
     
-    menu = ["✨ 平台主页"]
+    menu = ["✨ 平台首页"]
     
     if st.session_state.logged_in:
-        # 权限自愈：如果是管理员登录，强制拥有所有权限
         if st.session_state.user_id == "admin":
             st.session_state.user_perms = ALL_PERMS
         
@@ -107,55 +170,83 @@ with st.sidebar:
     choice = st.sidebar.radio("Navigation", menu, label_visibility="collapsed")
     
     if st.session_state.logged_in:
-        st.sidebar.markdown(f"<div style='margin-top:20px; padding:10px; background:rgba(59,130,246,0.1); border-radius:10px; color:#3b82f6; font-size:0.85rem;'>欢迎：{st.session_state.user_name}</div>", unsafe_allow_html=True)
+        st.sidebar.markdown(f"<div style='margin-top:20px; padding:12px; background:rgba(59,130,246,0.15); border-radius:10px; border:1px solid #3b82f6; color:#FFFFFF; font-size:0.9rem;'>当前用户：{st.session_state.user_name}</div>", unsafe_allow_html=True)
 
 # --- 5. 路由逻辑 ---
 
-if "平台主页" in choice:
-    st.markdown(f'<div class="hero-banner"><div class="premium-title">{config["main_title"]}</div><div style="color:#94a3b8; font-size:clamp(0.85rem, 1.2vw, 1.1rem); margin-top:10px;">智能监测 · 精准统计 · 流程溯源</div></div>', unsafe_allow_html=True)
+if "平台首页" in choice:
+    # 旗舰版 Hero Section 回归
+    st.markdown(f"""
+        <div class="hero-banner">
+            <div class="premium-title">{config['main_title']}</div>
+            <div class="premium-subtitle">
+                智能监测 · 精准统计 · 流程溯源<br>
+                借助数字化技术重塑资产效能，构建医疗设备全生命周期闭环管理体系。
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+    
     if not st.session_state.logged_in:
         st.info(f"🔐 {config['lock_message']}")
     else:
-        st.success(f"🚀 系统已就绪。您的功能权限：{', '.join(st.session_state.user_perms)}")
+        st.success(f"🚀 欢迎回来，{st.session_state.user_name}。")
+
+    # 底部说明卡片
+    st.markdown("<br>", unsafe_allow_html=True)
+    c1, c2, c3 = st.columns(3)
+    with c1: st.markdown('<div class="info-card"><h3 style="color:#3b82f6;">资产全景</h3><p>全生命周期追溯，实时掌握全院设备分布与价值评估。</p></div>', unsafe_allow_html=True)
+    with c2: st.markdown('<div class="info-card"><h3 style="color:#3b82f6;">智能维保</h3><p>临床一键扫码报修，维保全流程节点透明化可追踪。</p></div>', unsafe_allow_html=True)
+    with c3: st.markdown('<div class="info-card"><h3 style="color:#3b82f6;">规范文库</h3><p>国家强检标准与办公模板，权限分级下的安全共享。</p></div>', unsafe_allow_html=True)
 
 elif "用户登录" in choice:
-    st.markdown("<div style='max-width:400px; margin:0 auto; padding-top:5vh;'>", unsafe_allow_html=True)
+    st.markdown("<div style='max-width:420px; margin:0 auto; padding-top:8vh;'>", unsafe_allow_html=True)
     st.subheader("🔑 身份授权登录")
     with st.form("login_form"):
-        u = st.text_input("账号")
-        p = st.text_input("密码", type="password")
-        if st.form_submit_button("验证登录"):
+        u = st.text_input("工号 / 登录账号")
+        p = st.text_input("访问密码", type="password")
+        if st.form_submit_button("进入系统"):
             if u in users_db and users_db[u]["password"] == p:
                 st.session_state.logged_in = True
                 st.session_state.user_id = u
                 st.session_state.user_name = users_db[u].get("name", "未知用户")
-                # 加载权限，若无则设为空列表
                 st.session_state.user_perms = users_db[u].get("perms", [])
                 st.rerun()
-            else: st.error("登录凭据不正确")
+            else: st.error("登录凭据错误")
     st.markdown("</div>", unsafe_allow_html=True)
 
-elif "后台管理" in choice:
-    tab1, tab2, tab3 = st.tabs(["🖼️ 视觉配置", "👥 账号列表", "🔐 权限分配"])
-    
-    with tab1:
-        st.subheader("系统标题管理")
-        config['sidebar_title'] = st.text_input("侧边栏标题", config['sidebar_title'])
-        config['main_title'] = st.text_input("主标题内容", config['main_title'])
-        if st.button("更新配置"):
-            save_json_data(CONFIG_PATH, config)
-            st.rerun()
+elif "个人中心" in choice:
+    st.header("👤 个人中心")
+    with st.form("change_pwd"):
+        st.write(f"用户：{st.session_state.user_name} ({st.session_state.user_id})")
+        new_pw = st.text_input("修改新密码", type="password")
+        if st.form_submit_button("保存修改"):
+            if new_pw:
+                users_db[st.session_state.user_id]["password"] = new_pw
+                save_json_data(USERS_PATH, users_db)
+                st.success("修改成功")
+            else: st.error("密码不能为空")
 
-    with tab2:
-        st.subheader("全员账号概览")
-        user_list = [{"账号": k, "姓名": v["name"], "密码": v["password"], "角色": v.get("role", "staff")} for k, v in users_db.items()]
+elif "后台管理" in choice:
+    t1, t2, t3 = st.tabs(["🖼️ 视觉配置", "👥 账号运维", "🔐 权限分配"])
+    with t1:
+        st.subheader("系统文案自定义")
+        config['sidebar_title'] = st.text_input("左侧大标题", config['sidebar_title'])
+        config['main_title'] = st.text_input("首页流光标题 (建议12字以内)", config['main_title'])
+        config['sidebar_tag'] = st.text_input("下方标识文字", config['sidebar_tag'])
+        config['lock_message'] = st.text_area("锁定提示语", config['lock_message'])
+        if st.button("保存并同步配置"):
+            save_json_data(CONFIG_PATH, config)
+            st.success("界面已更新")
+            time.sleep(1)
+            st.rerun()
+    with t2:
+        st.subheader("账号列表")
+        user_list = [{"账号": k, "姓名": v["name"], "密码": v["password"]} for k, v in users_db.items()]
         st.table(pd.DataFrame(user_list))
-        
-        st.markdown("---")
-        st.write("➕ **添加新账号**")
-        with st.form("add_user_form"):
-            n_u = st.text_input("新账号ID")
-            n_n = st.text_input("用户姓名")
+        with st.form("add_user"):
+            st.write("➕ 添加新员工账号")
+            n_u = st.text_input("工号ID")
+            n_n = st.text_input("真实姓名")
             n_p = st.text_input("初始密码", value="123456")
             if st.form_submit_button("确认创建"):
                 if n_u and n_u not in users_db:
@@ -163,40 +254,28 @@ elif "后台管理" in choice:
                     save_json_data(USERS_PATH, users_db)
                     st.success("创建成功")
                     st.rerun()
-
-    with tab3:
-        st.subheader("精准权限控制")
-        target_u = st.selectbox("选择账号进行授权", list(users_db.keys()))
-        u_data = users_db[target_u]
-        
+    with t3:
+        st.subheader("权限精确授权")
+        target = st.selectbox("选择目标员工", list(users_db.keys()))
+        u_d = users_db[target]
         with st.form("perm_edit"):
-            st.write(f"正在配置：**{u_data['name']}**")
-            p_asset = st.checkbox("📊 资产档案权限", value="资产档案" in u_data.get("perms", []))
-            p_repair = st.checkbox("🛠️ 维修管理权限", value="维修管理" in u_data.get("perms", []))
-            p_library = st.checkbox("📂 工作文库权限", value="工作文库" in u_data.get("perms", []))
-            p_core = st.checkbox("🔐 核心隐藏文件权限", value="核心文件" in u_data.get("perms", []))
-            p_admin = st.checkbox("⚙️ 后台管理权限", value="后台管理" in u_data.get("perms", []))
-            
-            if st.form_submit_button("保存权限设置"):
+            st.write(f"正在配置：{u_d['name']}")
+            p_a = st.checkbox("📊 资产档案权限", value="资产档案" in u_d.get("perms", []))
+            p_r = st.checkbox("🛠️ 维修管理权限", value="维修管理" in u_d.get("perms", []))
+            p_l = st.checkbox("📂 工作文库权限", value="工作文库" in u_d.get("perms", []))
+            p_c = st.checkbox("🔐 核心隐藏文件权限", value="核心文件" in u_d.get("perms", []))
+            p_ad = st.checkbox("⚙️ 后台管理权限", value="后台管理" in u_d.get("perms", []))
+            if st.form_submit_button("应用权限"):
                 new_ps = []
-                if p_asset: new_ps.append("资产档案")
-                if p_repair: new_ps.append("维修管理")
-                if p_library: new_ps.append("工作文库")
-                if p_core: new_ps.append("核心文件")
-                if p_admin: new_ps.append("后台管理")
-                users_db[target_u]["perms"] = new_ps
+                if p_a: new_ps.append("资产档案")
+                if p_r: new_ps.append("维修管理")
+                if p_l: new_ps.append("工作文库")
+                if p_c: new_ps.append("核心文件")
+                if p_ad: new_ps.append("后台管理")
+                users_db[target]["perms"] = new_ps
                 save_json_data(USERS_PATH, users_db)
-                st.success("权限已更新")
+                st.success("权限设置成功")
                 st.rerun()
-
-elif "个人中心" in choice:
-    st.header("👤 个人中心")
-    with st.form("pwd_form"):
-        new_p = st.text_input("新密码", type="password")
-        if st.form_submit_button("修改密码"):
-            users_db[st.session_state.user_id]["password"] = new_p
-            save_json_data(USERS_PATH, users_db)
-            st.success("成功")
 
 elif "资产档案" in choice: show_asset()
 elif "维修管理" in choice: show_repair()
