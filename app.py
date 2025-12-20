@@ -10,7 +10,7 @@ try:
     from modules.repair_page import show_repair
     from modules.file_library import show_library
 except ImportError as e:
-    st.error(f"核心模块导入失败，请检查 modules 文件夹。错误信息: {e}")
+    st.error(f"核心模块导入失败: {e}")
 
 # --- 1. 数据管理核心逻辑 ---
 CONFIG_PATH = "data/config.json"
@@ -45,12 +45,11 @@ def apply_style():
         .premium-title {
             font-weight: 850; background: linear-gradient(90deg, #3b82f6, #60a5fa, #ffffff);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            white-space: nowrap; font-size: clamp(1.5rem, 4vw, 4rem); 
+            white-space: nowrap; font-size: clamp(1.5rem, 4vw, 3.5rem); 
             letter-spacing: -1.5px; line-height: 1.2;
         }
         [data-testid="stSidebar"] { background-color: #0a0f1d !important; min-width: 260px !important; }
         .stTabs [data-baseweb="tab-list"] { gap: 24px; }
-        .stTabs [data-baseweb="tab"] { color: #94a3b8; }
         .stTabs [aria-selected="true"] { color: #3b82f6 !important; border-bottom-color: #3b82f6 !important; }
         #MainMenu, footer, header { visibility: hidden; }
         </style>
@@ -60,6 +59,9 @@ def apply_style():
 st.set_page_config(page_title="智慧医疗装备管理平台", layout="wide")
 apply_style()
 
+# 默认权限全集
+ALL_PERMS = ["资产档案", "维修管理", "工作文库", "核心文件", "后台管理"]
+
 config = load_json_data(CONFIG_PATH, {
     "sidebar_title": "装备科平台",
     "sidebar_tag": "三甲医院信息化工具",
@@ -67,10 +69,8 @@ config = load_json_data(CONFIG_PATH, {
     "lock_message": "核心业务已锁定。请登录后访问业务数据。"
 })
 
-# 默认权限字典：资产档案, 维修管理, 工作文库, 核心文件, 后台管理
-DEFAULT_PERMS = ["资产档案", "维修管理", "工作文库", "核心文件", "后台管理"]
 users_db = load_json_data(USERS_PATH, {
-    "admin": {"password": "123", "role": "admin", "name": "科主任", "perms": DEFAULT_PERMS}
+    "admin": {"password": "123", "role": "admin", "name": "科主任", "perms": ALL_PERMS}
 })
 
 if 'logged_in' not in st.session_state:
@@ -85,15 +85,19 @@ with st.sidebar:
     menu = ["✨ 平台主页"]
     
     if st.session_state.logged_in:
+        # 权限自愈：如果是管理员登录，强制拥有所有权限
+        if st.session_state.user_id == "admin":
+            st.session_state.user_perms = ALL_PERMS
+        
         user_perms = st.session_state.get('user_perms', [])
-        # 核心逻辑：根据权限勾选情况动态生成菜单
+        
         if "资产档案" in user_perms: menu.append("📊 资产档案")
         if "维修管理" in user_perms: menu.append("🛠️ 维修管理")
         if "工作文库" in user_perms: menu.append("📂 工作文库")
         
         menu.append("👤 个人中心")
         
-        if "后台管理" in user_perms:
+        if "后台管理" in user_perms or st.session_state.user_id == "admin":
             menu.append("⚙️ 后台管理")
         
         menu.append("🔓 注销退出")
@@ -112,7 +116,7 @@ if "平台主页" in choice:
     if not st.session_state.logged_in:
         st.info(f"🔐 {config['lock_message']}")
     else:
-        st.success(f"🚀 系统已就绪。您拥有的功能模块已展示在左侧。")
+        st.success(f"🚀 系统已就绪。您的功能权限：{', '.join(st.session_state.user_perms)}")
 
 elif "用户登录" in choice:
     st.markdown("<div style='max-width:400px; margin:0 auto; padding-top:5vh;'>", unsafe_allow_html=True)
@@ -124,25 +128,12 @@ elif "用户登录" in choice:
             if u in users_db and users_db[u]["password"] == p:
                 st.session_state.logged_in = True
                 st.session_state.user_id = u
-                st.session_state.user_role = users_db[u].get("role", "staff")
                 st.session_state.user_name = users_db[u].get("name", "未知用户")
-                # 关键：登录时加载该用户的特定权限
+                # 加载权限，若无则设为空列表
                 st.session_state.user_perms = users_db[u].get("perms", [])
                 st.rerun()
             else: st.error("登录凭据不正确")
     st.markdown("</div>", unsafe_allow_html=True)
-
-elif "个人中心" in choice:
-    st.header("👤 个人中心")
-    with st.form("change_pwd"):
-        st.write(f"当前用户：{st.session_state.user_name}")
-        new_pw = st.text_input("设置新密码", type="password")
-        if st.form_submit_button("确认修改"):
-            if new_pw:
-                users_db[st.session_state.user_id]["password"] = new_pw
-                save_json_data(USERS_PATH, users_db)
-                st.success("密码已更新")
-            else: st.error("密码不能为空")
 
 elif "后台管理" in choice:
     tab1, tab2, tab3 = st.tabs(["🖼️ 视觉配置", "👥 账号列表", "🔐 权限分配"])
@@ -159,36 +150,53 @@ elif "后台管理" in choice:
         st.subheader("全员账号概览")
         user_list = [{"账号": k, "姓名": v["name"], "密码": v["password"], "角色": v.get("role", "staff")} for k, v in users_db.items()]
         st.table(pd.DataFrame(user_list))
+        
+        st.markdown("---")
+        st.write("➕ **添加新账号**")
+        with st.form("add_user_form"):
+            n_u = st.text_input("新账号ID")
+            n_n = st.text_input("用户姓名")
+            n_p = st.text_input("初始密码", value="123456")
+            if st.form_submit_button("确认创建"):
+                if n_u and n_u not in users_db:
+                    users_db[n_u] = {"password": n_p, "name": n_n, "perms": ["资产档案"], "role": "staff"}
+                    save_json_data(USERS_PATH, users_db)
+                    st.success("创建成功")
+                    st.rerun()
 
     with tab3:
         st.subheader("精准权限控制")
-        st.info("💡 管理员可在此处为每个账号单独定制可见模块。")
+        target_u = st.selectbox("选择账号进行授权", list(users_db.keys()))
+        u_data = users_db[target_u]
         
-        target_u = st.selectbox("选择要修改权限的账号", list(users_db.keys()))
-        current_user_data = users_db[target_u]
-        
-        with st.form("perm_form"):
-            st.write(f"正在配置：**{current_user_data['name']}** 的权限")
-            # 这里就是您要求的勾选框
-            p_asset = st.checkbox("📊 资产档案查看权限", value="资产档案" in current_user_data.get("perms", []))
-            p_repair = st.checkbox("🛠️ 维修管理查看权限", value="维修管理" in current_user_data.get("perms", []))
-            p_library = st.checkbox("📂 工作文库查看权限", value="工作文库" in current_user_data.get("perms", []))
-            p_core = st.checkbox("🔐 核心隐藏文件下载权限", value="核心文件" in current_user_data.get("perms", []))
-            p_admin = st.checkbox("⚙️ 后台管理进入权限", value="后台管理" in current_user_data.get("perms", []))
+        with st.form("perm_edit"):
+            st.write(f"正在配置：**{u_data['name']}**")
+            p_asset = st.checkbox("📊 资产档案权限", value="资产档案" in u_data.get("perms", []))
+            p_repair = st.checkbox("🛠️ 维修管理权限", value="维修管理" in u_data.get("perms", []))
+            p_library = st.checkbox("📂 工作文库权限", value="工作文库" in u_data.get("perms", []))
+            p_core = st.checkbox("🔐 核心隐藏文件权限", value="核心文件" in u_data.get("perms", []))
+            p_admin = st.checkbox("⚙️ 后台管理权限", value="后台管理" in u_data.get("perms", []))
             
-            if st.form_submit_button("💾 保存该用户权限"):
-                new_perms = []
-                if p_asset: new_perms.append("资产档案")
-                if p_repair: new_perms.append("维修管理")
-                if p_library: new_perms.append("工作文库")
-                if p_core: new_perms.append("核心文件")
-                if p_admin: new_perms.append("后台管理")
-                
-                users_db[target_u]["perms"] = new_perms
+            if st.form_submit_button("保存权限设置"):
+                new_ps = []
+                if p_asset: new_ps.append("资产档案")
+                if p_repair: new_ps.append("维修管理")
+                if p_library: new_ps.append("工作文库")
+                if p_core: new_ps.append("核心文件")
+                if p_admin: new_ps.append("后台管理")
+                users_db[target_u]["perms"] = new_ps
                 save_json_data(USERS_PATH, users_db)
-                st.success(f"{current_user_data['name']} 的权限已实时生效")
-                time.sleep(1)
+                st.success("权限已更新")
                 st.rerun()
+
+elif "个人中心" in choice:
+    st.header("👤 个人中心")
+    with st.form("pwd_form"):
+        new_p = st.text_input("新密码", type="password")
+        if st.form_submit_button("修改密码"):
+            users_db[st.session_state.user_id]["password"] = new_p
+            save_json_data(USERS_PATH, users_db)
+            st.success("成功")
 
 elif "资产档案" in choice: show_asset()
 elif "维修管理" in choice: show_repair()
