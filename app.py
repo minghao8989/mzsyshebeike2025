@@ -45,32 +45,35 @@ def apply_premium_style():
             padding: 5% 4%; margin-bottom: 2rem; width: 100%; overflow: hidden;
         }
         
-        /* 首页流光标题 (保持单行不换行) */
+        /* 首页流光标题 (核心：支持手动换行) */
         .premium-title {
             font-weight: 850;
             background: linear-gradient(90deg, #3b82f6, #60a5fa, #ffffff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            white-space: nowrap; 
+            /* 允许保留换行符 */
+            white-space: pre-wrap; 
             font-size: clamp(1.5rem, 4vw, 3.5rem); 
-            letter-spacing: -1.5px; line-height: 1.2;
-            margin-bottom: 0.8rem; display: block;
+            letter-spacing: -1.5px; 
+            line-height: 1.2;
+            margin-bottom: 0.8rem; 
+            display: block;
         }
 
-        /* --- 侧边栏样式精修 (核心修复：支持换行) --- */
+        /* --- 侧边栏样式精修 (核心：支持手动换行) --- */
         [data-testid="stSidebar"] {
             background-color: #0a0f1d !important;
             border-right: 1px solid rgba(255,255,255,0.05);
         }
         
-        /* 侧边栏标题样式：取消强制单行，增加行高 */
         .sidebar-main-title {
             color: #3b82f6 !important;
             font-size: 1.6rem !important;
             font-weight: 800 !important;
             line-height: 1.3 !important;
+            /* 允许保留换行符 */
+            white-space: pre-wrap !important; 
             word-wrap: break-word !important;
-            word-break: break-all !important;
             margin-bottom: 5px !important;
             text-shadow: 0px 2px 4px rgba(0,0,0,0.5);
         }
@@ -83,7 +86,6 @@ def apply_premium_style():
             font-weight: 500 !important;
         }
 
-        /* 导航菜单选中色 */
         [data-testid="stSidebar"] [aria-selected="true"] {
             color: #3b82f6 !important;
             font-weight: 700 !important;
@@ -100,9 +102,9 @@ apply_premium_style()
 ALL_PERMS = ["资产档案", "维修管理", "工作文库", "核心文件", "后台管理"]
 
 config = load_json_data(CONFIG_PATH, {
-    "sidebar_title": "梅州市第三人民医院装备科平台",
+    "sidebar_title": "梅州市\n第三人民医院\n装备科平台",
     "sidebar_tag": "设备科信息化工具",
-    "main_title": "医疗装备全生命周期管理平台",
+    "main_title": "医疗装备\n全生命周期管理平台",
     "lock_message": "核心业务已锁定。请登录后访问业务数据。"
 })
 
@@ -115,7 +117,7 @@ if 'logged_in' not in st.session_state:
 
 # --- 4. 侧边栏 ---
 with st.sidebar:
-    # 使用自定义 class 渲染标题，支持换行
+    # 渲染侧边栏大标题
     st.markdown(f'<div class="sidebar-main-title">🏥 {config["sidebar_title"]}</div>', unsafe_allow_html=True)
     st.markdown(f"<p style='color:#60a5fa; font-size:0.85rem; margin-top:0;'>{config['sidebar_tag']}</p>", unsafe_allow_html=True)
     st.markdown("---")
@@ -141,24 +143,26 @@ with st.sidebar:
 
 # --- 5. 路由逻辑 ---
 if "平台首页" in choice:
+    # 首页大标题渲染
     st.markdown(f'<div class="hero-banner"><div class="premium-title">{config["main_title"]}</div><div style="color:#94a3b8; font-size:clamp(0.9rem, 1.3vw, 1.2rem);">智能监测 · 精准统计 · 流程溯源</div></div>', unsafe_allow_html=True)
+    
     if not st.session_state.logged_in:
         st.info(f"🔐 {config['lock_message']}")
     else:
-        st.success(f"🚀 系统已就绪。")
+        st.success(f"🚀 系统就绪。")
 
     c1, c2, c3 = st.columns(3)
-    with c1: st.markdown('<div style="background:rgba(255,255,255,0.03); padding:1.5rem; border-radius:15px; border:1px solid rgba(255,255,255,0.1); height:100%;"><h3 style="color:#3b82f6;">资产全景</h3><p style="color:#64748b;">实时掌握设备分布与价值评估。</p></div>', unsafe_allow_html=True)
-    with c2: st.markdown('<div style="background:rgba(255,255,255,0.03); padding:1.5rem; border-radius:15px; border:1px solid rgba(255,255,255,0.1); height:100%;"><h3 style="color:#3b82f6;">智能维保</h3><p style="color:#64748b;">报修流程节点透明化可追踪。</p></div>', unsafe_allow_html=True)
-    with c3: st.markdown('<div style="background:rgba(255,255,255,0.03); padding:1.5rem; border-radius:15px; border:1px solid rgba(255,255,255,0.1); height:100%;"><h3 style="color:#3b82f6;">规范文库</h3><p style="color:#64748b;">强检标准与办公模板安全共享。</p></div>', unsafe_allow_html=True)
+    with c1: st.markdown('<div style="background:rgba(255,255,255,0.03); padding:1.5rem; border-radius:15px; border:1px solid rgba(255,255,255,0.1); height:100%;"><h4 style="color:#3b82f6;">资产全景</h4><p style="color:#64748b; font-size:0.85rem;">全生命周期追溯。</p></div>', unsafe_allow_html=True)
+    with c2: st.markdown('<div style="background:rgba(255,255,255,0.03); padding:1.5rem; border-radius:15px; border:1px solid rgba(255,255,255,0.1); height:100%;"><h4 style="color:#3b82f6;">智能维保</h4><p style="color:#64748b; font-size:0.85rem;">报修进度实时追踪。</p></div>', unsafe_allow_html=True)
+    with c3: st.markdown('<div style="background:rgba(255,255,255,0.03); padding:1.5rem; border-radius:15px; border:1px solid rgba(255,255,255,0.1); height:100%;"><h4 style="color:#3b82f6;">规范文库</h4><p style="color:#64748b; font-size:0.85rem;">合规文档分级下载。</p></div>', unsafe_allow_html=True)
 
 elif "用户登录" in choice:
     st.markdown("<div style='max-width:420px; margin:0 auto; padding-top:8vh;'>", unsafe_allow_html=True)
     st.subheader("🔑 身份授权登录")
     with st.form("login_form"):
-        u = st.text_input("工号 / 登录账号")
-        p = st.text_input("访问密码", type="password")
-        if st.form_submit_button("进入系统"):
+        u = st.text_input("账号")
+        p = st.text_input("密码", type="password")
+        if st.form_submit_button("验证登录"):
             if u in users_db and users_db[u]["password"] == p:
                 st.session_state.logged_in = True
                 st.session_state.user_id = u
@@ -171,30 +175,38 @@ elif "用户登录" in choice:
 elif "后台管理" in choice:
     t1, t2, t3 = st.tabs(["🖼️ 视觉配置", "👥 账号运维", "🔐 权限分配"])
     with t1:
-        config['sidebar_title'] = st.text_input("左侧大标题 (支持长名称自动换行)", config['sidebar_title'])
-        config['main_title'] = st.text_input("首页流光标题", config['main_title'])
-        config['sidebar_tag'] = st.text_input("下方标识文字", config['sidebar_tag'])
+        st.write("💡 **提示：在此处输入文字，按 Enter 键即可手动换行。**")
+        # 核心修改：使用 text_area 替换 text_input
+        config['sidebar_title'] = st.text_area("左侧大标题 (支持回车换行)", config['sidebar_title'], height=100)
+        config['main_title'] = st.text_area("首页流光大标题 (支持回车换行)", config['main_title'], height=100)
+        
+        config['sidebar_tag'] = st.text_input("下方小标识文字", config['sidebar_tag'])
         config['lock_message'] = st.text_area("锁定提示语", config['lock_message'])
-        if st.button("更新配置"):
+        
+        if st.button("💾 保存并应用全局布局"):
             save_json_data(CONFIG_PATH, config)
+            st.success("配置已更新！")
+            time.sleep(1)
             st.rerun()
+
     with t2:
         user_list = [{"账号": k, "姓名": v["name"], "密码": v["password"]} for k, v in users_db.items()]
         st.table(pd.DataFrame(user_list))
-        with st.form("add_user"):
-            n_u = st.text_input("ID"); n_n = st.text_input("姓名"); n_p = st.text_input("密码")
+        with st.form("add_u"):
+            n_u = st.text_input("新账号ID"); n_n = st.text_input("姓名"); n_p = st.text_input("密码")
             if st.form_submit_button("创建账号"):
                 users_db[n_u] = {"password": n_p, "name": n_n, "perms": ["资产档案"], "role": "staff"}
                 save_json_data(USERS_PATH, users_db); st.rerun()
+                
     with t3:
-        target = st.selectbox("选择目标员工", list(users_db.keys()))
+        target = st.selectbox("选择账号", list(users_db.keys()))
         with st.form("perm_edit"):
             p_a = st.checkbox("📊 资产档案", value="资产档案" in users_db[target].get("perms", []))
             p_r = st.checkbox("🛠️ 维修管理", value="维修管理" in users_db[target].get("perms", []))
             p_l = st.checkbox("📂 工作文库", value="工作文库" in users_db[target].get("perms", []))
             p_c = st.checkbox("🔐 核心文件", value="核心文件" in users_db[target].get("perms", []))
             p_ad = st.checkbox("⚙️ 后台管理", value="后台管理" in users_db[target].get("perms", []))
-            if st.form_submit_button("应用权限"):
+            if st.form_submit_button("保存权限"):
                 new_ps = []
                 if p_a: new_ps.append("资产档案")
                 if p_r: new_ps.append("维修管理")
@@ -210,9 +222,9 @@ elif "工作文库" in choice: show_library()
 elif "个人中心" in choice:
     with st.form("pwd"):
         new_p = st.text_input("新密码", type="password")
-        if st.form_submit_button("修改"):
+        if st.form_submit_button("更新"):
             users_db[st.session_state.user_id]["password"] = new_p
-            save_json_data(USERS_PATH, users_db); st.success("成功")
+            save_json_data(USERS_PATH, users_db); st.success("已更新")
 elif "注销退出" in choice:
     st.session_state.logged_in = False
     st.rerun()
