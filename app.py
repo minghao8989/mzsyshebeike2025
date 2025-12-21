@@ -70,24 +70,25 @@ def apply_premium_style():
             text-shadow: 0px 2px 4px rgba(0,0,0,0.5);
         }
 
-        /* --- 核心修复：强制按钮高对比度可见 --- */
-        .stButton>button {
-            background-color: #1e40af !important; /* 强制深蓝色背景 */
-            color: #ffffff !important;           /* 强制白色文字 */
+        /* --- 核心修复：强制按钮可见性 (深蓝底白字) --- */
+        div.stButton > button {
+            background-color: #1e40af !important; /* 深蓝色背景 */
+            color: #ffffff !important;           /* 纯白色文字 */
             border: 1px solid #3b82f6 !important;
             border-radius: 8px !important;
-            padding: 0.5rem 2rem !important;
+            padding: 0.6rem 2.5rem !important;
             font-weight: 700 !important;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
-            transition: all 0.2s ease !important;
+            font-size: 1rem !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
         }
-        .stButton>button:hover {
-            background-color: #3b82f6 !important; /* 悬停变亮蓝 */
-            border-color: #60a5fa !important;
+        div.stButton > button:hover {
+            background-color: #3b82f6 !important;
+            border-color: #ffffff !important;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.6) !important;
             transform: translateY(-2px);
-        }
-        .stButton>button:active {
-            transform: translateY(0px);
         }
 
         /* 侧边栏及组件适配 */
@@ -103,7 +104,7 @@ def apply_premium_style():
         </style>
     """, unsafe_allow_html=True)
 
-# --- 3. 初始化 ---
+# --- 3. 系统初始化 ---
 st.set_page_config(page_title="智慧医疗装备管理平台", layout="wide")
 apply_premium_style()
 
@@ -162,20 +163,19 @@ if "平台主页" in choice:
     with c3: st.markdown('<div style="background:rgba(255,255,255,0.03); padding:1.5rem; border-radius:15px; border:1px solid rgba(255,255,255,0.1); height:100%;"><h4 style="color:#3b82f6;">规范文库</h4><p style="color:#64748b; font-size:0.85rem;">合规文档分级下载。</p></div>', unsafe_allow_html=True)
 
 elif "用户登录" in choice:
-    st.markdown("<div style='max-width:420px; margin:0 auto; padding-top:8vh;'>", unsafe_allow_html=True)
+    st.markdown("<div style='max-width:420px; margin: 0 auto; padding-top:8vh;'>", unsafe_allow_html=True)
     st.subheader("🔑 身份授权登录")
     with st.form("login_form"):
         u = st.text_input("账号")
         p = st.text_input("密码", type="password")
-        # --- 此按钮现在强制可见 ---
-        if st.form_submit_button("验证登录并进入系统"):
+        if st.form_submit_button("验证登录"):
             if u in users_db and users_db[u]["password"] == p:
                 st.session_state.logged_in = True
                 st.session_state.user_id = u
                 st.session_state.user_name = users_db[u].get("name", "用户")
                 st.session_state.user_perms = users_db[u].get("perms", [])
                 st.rerun()
-            else: st.error("登录失败，请检查账号密码。")
+            else: st.error("登录失败，请检查凭据。")
     st.markdown("</div>", unsafe_allow_html=True)
 
 elif "后台管理" in choice:
@@ -186,9 +186,7 @@ elif "后台管理" in choice:
         config['main_title'] = st.text_area("首页流光大标题", config['main_title'], height=100)
         config['sidebar_tag'] = st.text_input("底部标识文字", config['sidebar_tag'])
         config['lock_message'] = st.text_area("未登录锁定提示语", config['lock_message'])
-        
-        # --- 此按钮现在强制可见 ---
-        if st.button("💾 保存并应用全院布局"):
+        if st.button("💾 保存并应用全局布局"):
             save_json_data(CONFIG_PATH, config)
             st.success("配置更新成功！")
             time.sleep(1)
@@ -200,7 +198,7 @@ elif "后台管理" in choice:
         with st.form("add_user_form"):
             st.write("➕ **创建新员工账号**")
             n_u = st.text_input("新账号ID"); n_n = st.text_input("真实姓名"); n_p = st.text_input("初始密码")
-            if st.form_submit_button("确认创建"):
+            if st.form_submit_button("确认创建账号"):
                 if n_u and n_u not in users_db:
                     users_db[n_u] = {"password": n_p, "name": n_n, "perms": ["资产档案"], "role": "staff"}
                     save_json_data(USERS_PATH, users_db); st.rerun()
@@ -231,7 +229,7 @@ elif "工作文库" in choice: show_library()
 elif "个人中心" in choice:
     with st.form("pwd_center"):
         new_p = st.text_input("设置新密码", type="password")
-        if st.form_submit_button("确认修改密码"):
+        if st.form_submit_button("确认修改"):
             users_db[st.session_state.user_id]["password"] = new_p
             save_json_data(USERS_PATH, users_db); st.success("修改成功！")
 elif "注销退出" in choice:
