@@ -2,6 +2,4 @@ streamlit
 pandas
 qrcode
 itsdangerous
-
 pillow
-streamlit-aggrid
