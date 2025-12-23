@@ -3,107 +3,109 @@ import pandas as pd
 import os
 
 def show_asset():
-    # --- 修正后的打印优化 CSS ---
-    # 删除了错误的参数，修正为 unsafe_allow_html=True
+    # 注入 CSS 优化：确保 24 列超长表格在任何屏幕下都可平滑横向滚动，且表头不换行
     st.markdown("""
         <style>
-        @media print {
-            /* 打印时隐藏侧边栏、按钮、搜索框和页眉 */
-            [data-testid="stSidebar"], .stButton, .stDownloadButton, .stTextInput, header {
-                display:none !important;
-            }
-            /* 铺满纸张 */
-            .main .block-container {
-                padding: 0 !important;
-                max-width: 100% !important;
-            }
-        }
+        .stDataFrame div[data-testid="stTable"] { font-size: 0.8rem; }
+        [data-testid="stMetricValue"] { font-size: 1.8rem !important; }
+        /* 强制表格容器支持横向滚动 */
+        div[data-testid="stDataFrame"] > div { overflow-x: auto !important; }
         </style>
     """, unsafe_allow_html=True)
 
-    st.header("🏥 医疗装备档案库")
+    st.header("📋 医院资产综合档案管理")
     
     file_path = "data/equipment.csv"
     
-    # 1. 检查文件是否存在
     if not os.path.exists(file_path):
-        st.error(f"未找到数据文件：{file_path}，请确保 GitHub 中已创建该文件。")
+        st.error("未找到数据文件，请检查 data/equipment.csv 是否已创建并上传。")
         return
 
-    # 2. 读取数据 (包含编码容错逻辑)
+    # 1. 读取数据 (处理重复列名)
     try:
+        # 您的目录中有两个"设备名"，Pandas会自动将其重命名为"设备名"和"设备名.1"
         df = pd.read_csv(file_path, encoding='utf-8-sig')
-    except:
-        try:
-            df = pd.read_csv(file_path, encoding='gbk')
-        except Exception as e:
-            st.error(f"读取数据失败，请检查文件编码。错误信息: {e}")
-            return
+    except Exception as e:
+        st.error(f"档案读取失败: {e}")
+        return
 
-    # 3. 顶部统计指标 (基于您自定义的列名)
-    st.subheader("📊 全院资产概览")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("管理设备总数", f"{len(df)} 台/套")
+    # 2. 顶部核心指标统计
+    st.subheader("🏥 资产运行态势")
+    col1, col2, col3, col4 = st.columns(4)
     
-    # 安全匹配“设备状态”列
-    status_col = "设备状态"
+    # 总台数 (基于数量列求和)
+    if '数量' in df.columns:
+        total_qty = pd.to_numeric(df['数量'], errors='coerce').sum()
+        col1.metric("资产总数量", f"{int(total_qty) if not pd.isna(total_qty) else 0} 件/套")
+    else:
+        col1.metric("资产总条数", len(df))
+
+    # 总价值 (基于“价值”列)
+    if '价值' in df.columns:
+        total_val = pd.to_numeric(df['价值'], errors='coerce').sum()
+        col2.metric("固定资产总值", f"￥{total_val:,.2f}")
+
+    # 正常运行数
+    status_col = '设备状态'
     if status_col in df.columns:
-        active_count = len(df[df[status_col].isin(['正常', '在用', '运行中'])])
-        c2.metric("正常运行设备", active_count)
-    else:
-        c2.metric("正常运行", "列名未匹配")
+        normal_df = df[df[status_col].isin(['正常', '在用', '良好'])]
+        col3.metric("运行正常", len(normal_df))
     
-    # 安全匹配“购置金额”列
-    price_col = "购置金额"
-    if price_col in df.columns:
-        total_money = pd.to_numeric(df[price_col], errors='coerce').sum()
-        c3.metric("资产总值", f"￥{total_money:,.2f}")
-    else:
-        c3.metric("资产总值", "列名未匹配")
+    # 报废预警 (模拟逻辑：可报废年限 <= 2025)
+    if '可报废年限' in df.columns:
+        warning_count = len(df[pd.to_numeric(df['可报废年限'], errors='coerce') <= 2025])
+        col4.metric("近期待报废", warning_count)
 
     st.divider()
 
-    # 4. 数据查询与 A4 打印模拟区
-    st.subheader("🔍 档案明细 (支持 A4 打印预览)")
+    # 3. 档案明细查询与维护
+    st.subheader("🔍 资产档案全字段检索")
     
-    search = st.text_input("输入关键词搜索（打印前请清空搜索框以显示全部数据）：")
-    if search:
-        display_df = df[df.apply(lambda row: row.astype(str).str.contains(search).any(), axis=1)]
+    # 全局搜索
+    q = st.text_input("输入科室、SN码、编号或品牌进行快速定位...", placeholder="例如：精神科一区")
+    if q:
+        # 在所有列中搜索关键词
+        mask = df.apply(lambda row: row.astype(str).str.contains(q, case=False).any(), axis=1)
+        display_df = df[mask]
     else:
         display_df = df
 
-    # 设置表格高度：根据数据行数动态计算，最大 800px 以模拟 A4 长度
-    table_height = min(len(display_df) * 35 + 100, 800) 
-
-    # 渲染数据编辑器
+    # 4. 高级数据编辑器 (24 列全字段开启)
+    st.info("💡 提示：您可以横向滑动表格查看所有 24 个字段。双击单元格可编辑，完成后点击下方保存。")
+    
     edited_df = st.data_editor(
-        display_df, 
-        num_rows="dynamic", 
-        use_container_width=True, 
-        height=table_height,       
+        display_df,
+        num_rows="dynamic",
+        use_container_width=True,
+        height=600,
         column_config={
-            "科室名称": st.column_config.TextColumn("科室名称", width="medium"),
-            "设备名称": st.column_config.TextColumn("设备名称", width="large"),
-            "购置金额": st.column_config.NumberColumn("金额", format="￥%.2f"),
+            "科室": st.column_config.TextColumn("所属科室", width="medium"),
+            "设备名": st.column_config.TextColumn("设备名称", width="large"),
+            "价值": st.column_config.NumberColumn("总价值", format="￥%.2f"),
+            "价格": st.column_config.NumberColumn("单价", format="￥%.2f"),
+            "出厂日期": st.column_config.DateColumn("出厂日期"),
+            "验收日期": st.column_config.DateColumn("验收日期"),
             "设备状态": st.column_config.SelectboxColumn(
-                "状态",
-                options=["正常", "维修中", "待报废", "封存", "计量中"],
+                "设备状态",
+                options=["正常", "维修中", "封存", "待报废", "计量中"],
                 required=True
-            )
+            ),
+            "厂家电话": st.column_config.TextColumn("厂家/售后电话")
         }
     )
-    
-    # 5. 操作按钮区
-    col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 4])
-    
-    if col_btn1.button("💾 保存变动"):
-        # 保存时强制使用 utf-8-sig 以兼容 Excel 中文显示
-        edited_df.to_csv(file_path, index=False, encoding='utf-8-sig')
-        st.success("✅ 档案已成功同步！")
-        st.rerun()
-    
-    with col_btn2:
-        csv_data = edited_df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
-        st.download_button("📥 导出 Excel", data=csv_data, file_name="医疗装备档案.csv")
 
-    st.caption("🛠️ **打印指南**：按 **Ctrl+P**。建议：纸张选『横向』，缩放选『适应页宽』，并勾选『打印背景图形』。")
+    # 5. 保存与同步
+    btn_col1, btn_col2, _ = st.columns([1, 1, 4])
+    if btn_col1.button("💾 同步变更到数据库"):
+        edited_df.to_csv(file_path, index=False, encoding='utf-8-sig')
+        st.success("✅ 档案库已成功更新并保存！")
+        st.rerun()
+
+    with btn_col2:
+        output_csv = edited_df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
+        st.download_button(
+            "📥 导出当前报表",
+            data=output_csv,
+            file_name=f"资产档案导出_{time.strftime('%Y%m%d')}.csv",
+            mime="text/csv"
+        )
