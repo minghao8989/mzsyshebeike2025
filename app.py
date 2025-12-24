@@ -3,8 +3,11 @@ import json
 import os
 import time
 import pandas as pd
+import base64
 
-# 尝试导入业务模块
+# --- 1. 基础配置与模块导入 ---
+st.set_page_config(page_title="智慧医疗装备管理平台", layout="wide")
+
 try:
     from modules.asset_page import show_asset
     from modules.repair_page import show_repair
@@ -12,7 +15,6 @@ try:
 except ImportError as e:
     st.error(f"核心模块导入失败: {e}")
 
-# --- 1. 数据管理核心逻辑 ---
 CONFIG_PATH = "data/config.json"
 USERS_PATH = "data/users.json"
 EQUIPMENT_PATH = "data/equipment.csv"
@@ -31,7 +33,11 @@ def save_json_data(path, data):
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-# --- 🚀 资产数据合并导入逻辑 ---
+# 将上传的图片转为 Base64 字符串
+def img_to_base64(image_file):
+    return base64.b64encode(image_file.read()).decode()
+
+# --- 资产数据合并导入逻辑 ---
 def run_hospital_import_logic():
     standard_columns = [
         "序号", "科室", "设备名称", "资产国标代码", "国标代码+地点+流水", "设备SN码", 
@@ -59,63 +65,131 @@ def run_hospital_import_logic():
         return len(final_df)
     return 0
 
-# --- 2. 仿图2高清晰视觉样式 ---
+# --- 2. 深度视觉样式优化 ---
 def apply_premium_style():
     st.markdown("""
         <style>
-        /* 全局背景：深灰蓝，文字：纯白 */
         .stApp { background-color: #111827; color: #FFFFFF; }
         
-        /* 侧边栏样式 */
-        [data-testid="stSidebar"] { background-color: #1F2937 !important; border-right: 1px solid #374151; }
+        /* 侧边栏整体背景 */
+        [data-testid="stSidebar"] { 
+            background-color: #1E293B !important; 
+            border-right: 1px solid #334155; 
+        }
+
+        /* Logo 容器样式 */
+        .sidebar-logo-container {
+            display: flex;
+            justify-content: center;
+            padding: 20px 0 10px 0;
+        }
+        .sidebar-logo {
+            max-width: 180px;
+            max-height: 90px;
+            object-fit: contain;
+            filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.3));
+        }
+        
+        /* 左侧大标题 */
         .sidebar-main-title {
-            color: #38BDF8 !important; font-size: 1.6rem !important; font-weight: 800 !important;
+            color: #38BDF8 !important; 
+            font-size: 1.25rem !important;
+            font-weight: 850 !important;
             text-shadow: 0px 2px 4px #000000;
-        }
-        [data-testid="stSidebar"] .stMarkdown p, [data-testid="stSidebar"] label {
-            color: #F0F9FF !important; font-weight: 600 !important;
-        }
-
-        /* 首页 Banner */
-        .hero-banner {
-            background: linear-gradient(135deg, #1E3A8A 0%, #111827 100%);
-            border: 1px solid #3B82F6; border-radius: 15px; padding: 40px; margin-bottom: 20px;
-        }
-        .premium-title {
-            font-weight: 850; color: #FFFFFF; font-size: 3rem; white-space: pre-wrap;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+            text-align: center;
+            padding: 0.5rem 0.4rem 1.2rem 0.4rem !important;
+            line-height: 1.1 !important; 
+            white-space: pre-line !important; 
         }
 
-        /* 按钮：强制可见，深蓝底白字 */
-        div.stButton > button {
-            background-color: #2563EB !important; color: #FFFFFF !important;
-            border: 1px solid #60A5FA !important; border-radius: 6px !important;
-            padding: 10px 30px !important; font-weight: 700 !important;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3) !important;
+        /* 导航分组标题 */
+        .nav-section-title {
+            color: #94A3B8 !important;
+            font-size: 0.85rem !important;
+            font-weight: 700 !important;
+            margin: 15px 0 5px 15px !important;
+            letter-spacing: 1px;
         }
-        div.stButton > button:hover { background-color: #3B82F6 !important; border-color: #FFFFFF !important; }
 
-        /* 表格强化 */
-        [data-testid="stTable"] { background-color: #1F2937 !important; color: #FFFFFF !important; }
+        /* 强制清除英文标签及占位 */
+        [data-testid="stSidebarNav"] + div [data-testid="stWidgetLabel"],
+        [data-testid="stSidebar"] .stRadio > label,
+        [data-testid="stSidebar"] div[data-baseweb="radio"] > div:first-child {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+        
+        /* 导航卡片美化 */
+        [data-testid="stSidebar"] .stRadio div[role="radiogroup"] { 
+            gap: 8px; 
+            padding: 0 10px; 
+            margin-top: -15px !important; 
+        }
+
+        [data-testid="stSidebar"] .stRadio label {
+            background-color: rgba(51, 65, 85, 0.4) !important;
+            border-radius: 8px !important;
+            padding: 10px 15px !important;
+            border: 1px solid #334155 !important;
+            transition: all 0.2s ease !important;
+            cursor: pointer;
+            display: block !important;
+        }
+
+        [data-testid="stSidebar"] .stRadio div[aria-checked="true"] label {
+            background: linear-gradient(135deg, #0EA5E9 0%, #2563EB 100%) !important;
+            color: white !important;
+            border: none !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        [data-testid="stSidebar"] .stRadio p { 
+            color: #F1F5F9 !important; 
+            font-weight: 600 !important; 
+            font-size: 0.95rem !important;
+        }
+
+        /* 首页 Banner 与 按钮 */
+        .hero-banner { background: linear-gradient(135deg, #1E3A8A 0%, #111827 100%); border: 1px solid #3B82F6; border-radius: 12px; padding: 30px; }
+        .premium-title { font-weight: 850; color: #FFFFFF; font-size: 2.8rem; white-space: pre-wrap; }
+        div.stButton > button { background-color: #2563EB !important; color: #FFFFFF !important; font-weight: 700 !important; }
         
         #MainMenu, footer, header { visibility: hidden; }
         </style>
     """, unsafe_allow_html=True)
 
-# --- 3. 初始化 ---
-st.set_page_config(page_title="智慧医疗装备管理平台", layout="wide")
 apply_premium_style()
 
+# --- 3. 初始化配置 ---
 ALL_PERMS = ["资产档案", "维修管理", "工作文库", "核心文件", "后台管理"]
-config = load_json_data(CONFIG_PATH, {"sidebar_title": "梅州市\n第三人民医院\n装备科平台", "main_title": "医疗装备\n全生命周期管理平台"})
+config = load_json_data(CONFIG_PATH, {
+    "sidebar_title": "梅州市\n第三人民医院\n装备科平台", 
+    "main_title": "医疗装备\n全生命周期管理平台",
+    "nav_label": "导航栏",
+    "logo_base64": ""
+})
 users_db = load_json_data(USERS_PATH, {"admin": {"password": "123", "name": "设备科科长", "perms": ALL_PERMS}})
 
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 
-# --- 4. 侧边栏导航 (全功能恢复) ---
+# --- 4. 侧边栏渲染 ---
 with st.sidebar:
-    st.markdown(f'<div class="sidebar-main-title">🏥 {config["sidebar_title"]}</div>', unsafe_allow_html=True)
+    # 新增：显示 Logo 逻辑
+    if config.get("logo_base64"):
+        st.markdown(f'''
+            <div class="sidebar-logo-container">
+                <img src="data:image/png;base64,{config["logo_base64"]}" class="sidebar-logo">
+            </div>
+        ''', unsafe_allow_html=True)
+        
+    st.markdown(f'<div class="sidebar-main-title">{config["sidebar_title"]}</div>', unsafe_allow_html=True)
     st.markdown("---")
+    
+    st.markdown(f'<div class="nav-section-title">{config.get("nav_label", "导航栏")}</div>', unsafe_allow_html=True)
     
     menu = ["✨ 平台主页"]
     if st.session_state.logged_in:
@@ -131,13 +205,13 @@ with st.sidebar:
     else:
         menu.append("🔑 用户登录")
     
-    choice = st.sidebar.radio("Nav", menu, label_visibility="collapsed")
+    choice = st.radio("sidebar_nav_internal", menu, label_visibility="collapsed")
 
-# --- 5. 路由逻辑 ---
+# --- 5. 路由与业务逻辑 ---
 if "平台主页" in choice:
     st.markdown(f'<div class="hero-banner"><div class="premium-title">{config["main_title"]}</div></div>', unsafe_allow_html=True)
     if not st.session_state.logged_in: st.info("🔐 核心业务已锁定。请登录后访问。")
-    else: st.success("🚀 欢迎回来。")
+    else: st.success(f"🚀 欢迎回来，{st.session_state.user_name}。")
 
 elif "用户登录" in choice:
     st.markdown("<div style='max-width:400px; margin:0 auto; padding-top:5vh;'>", unsafe_allow_html=True)
@@ -156,9 +230,29 @@ elif "用户登录" in choice:
 elif "后台管理" in choice:
     t1, t2, t3, t4 = st.tabs(["🖼️ 视觉配置", "👥 账号运维", "🔐 权限分配", "🚀 资产导入"])
     with t1:
+        st.subheader("品牌视觉自定义")
+        
+        # 新增：Logo 上传功能
+        new_logo = st.file_uploader("上传 Logo (PNG/JPG)", type=["png", "jpg", "jpeg"])
+        if new_logo:
+            if st.button("🆙 应用新 Logo"):
+                config["logo_base64"] = img_to_base64(new_logo)
+                save_json_data(CONFIG_PATH, config)
+                st.success("Logo 已更新！")
+                time.sleep(1)
+                st.rerun()
+        
+        if config.get("logo_base64") and st.button("🗑️ 移除当前 Logo"):
+            config["logo_base64"] = ""
+            save_json_data(CONFIG_PATH, config)
+            st.rerun()
+            
+        st.divider()
         config['sidebar_title'] = st.text_area("左侧大标题", config['sidebar_title'])
+        config['nav_label'] = st.text_input("导航分组标题", config.get('nav_label', '导航栏'))
         config['main_title'] = st.text_area("首页流光标题", config['main_title'])
-        if st.button("💾 保存配置"): save_json_data(CONFIG_PATH, config); st.rerun()
+        if st.button("💾 保存文字配置"): save_json_data(CONFIG_PATH, config); st.rerun()
+        
     with t2:
         st.subheader("账号运维")
         user_df = pd.DataFrame([{"账号": k, "姓名": v["name"]} for k, v in users_db.items()])
